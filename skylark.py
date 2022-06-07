@@ -120,7 +120,7 @@ def create_pid_file():
 def remove_pid_file():
     if PID_FILE is not None:
         PID_FILE.close()
-        util.remove(PID_FILE.name)
+        util.remove_file(PID_FILE.name)
 
 
 def register_callback_event(conn, event_id, callback_func, opaque):
