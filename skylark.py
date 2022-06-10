@@ -37,6 +37,7 @@ from logger import LOGGER
 from qos_analyzer.poweranalyzer import PowerAnalyzer
 from qos_controller.cpucontroller import CpuController
 from qos_controller.netcontroller import NetController
+from qos_controller.cachembwcontroller import CacheMBWController
 import util
 
 QOS_MANAGER_ENTRY = None
@@ -61,6 +62,7 @@ class QosManager:
         self.power_analyzer = PowerAnalyzer()
         self.cpu_controller = CpuController()
         self.net_controller = NetController()
+        self.cachembw_controller = CacheMBWController()
 
     def scheduler_listener(self, event):
         if event.exception:
@@ -78,6 +80,7 @@ class QosManager:
 
     def init_qos_controller(self):
         self.cpu_controller.set_low_priority_cgroup()
+        self.cachembw_controller.init_cachembw_controller(self.data_collector.host_info.resctrl_info)
         atexit.register(self.cpu_controller.reset_domain_bandwidth, self.data_collector.guest_info)
         self.net_controller.init_net_controller()
 
@@ -155,6 +158,8 @@ def event_id_set_state_callback(conn, dom, old_state, new_state, opaque):
         if vm_started:
             QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
+            QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
+                                                QOS_MANAGER_ENTRY.data_collector.guest_info)
 
 
 def event_device_added_callback(conn, dom, dev_alias, opaque):
@@ -164,6 +169,8 @@ def event_device_added_callback(conn, dom, dev_alias, opaque):
         QOS_MANAGER_ENTRY.reset_power_manage()
         QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
                             QOS_MANAGER_ENTRY.data_collector.guest_info)
+        QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
+                                                QOS_MANAGER_ENTRY.data_collector.guest_info)
 
 
 def event_device_removed_callback(conn, dom, dev_alias, opaque):

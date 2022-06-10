@@ -19,6 +19,8 @@ Description: This file is used for setting and updating of host info
 import atexit
 import ctypes
 import copy
+import os
+import subprocess
 import re
 import time
 
@@ -31,6 +33,7 @@ import util
 SECOND_TO_NANOSECOND = 1000000000
 WATT_TO_UWATT = 1000000
 INTEL_FAM6_ATOM_SILVERMONT = 0x37
+RESCTRLPATH = "/sys/fs/resctrl"
 
 
 class StructPointer(ctypes.Structure):
@@ -165,6 +168,46 @@ class HostStatusData:
                             self.package_data_dict.get(package).update_time))
 
 
+class ResctrlInfo:
+    def __init__(self):
+        self.max_cache_ways = None
+        self.min_cache_ways = None
+        self.mbw_gran = None
+        self.mbw_min = None
+        self.id_num = None
+
+    def get_resctrl_infos(self):
+        def value_of_subpath(subpath):
+            return util.file_read(os.path.join(RESCTRLPATH, subpath))
+
+        cache_allocation_enabled = os.access(
+            os.path.join(RESCTRLPATH, "info/L3"), os.R_OK)
+        mbw_allocation_enabled = os.access(
+            os.path.join(RESCTRLPATH, "info/MB"), os.R_OK)
+        if not cache_allocation_enabled or not mbw_allocation_enabled:
+            LOGGER.error("Resctrl's cache/mbw allocation disabled, skylark exit")
+            raise OSError
+
+        self.max_cache_ways = bin(int(
+            value_of_subpath("info/L3/cbm_mask"), 16)).count("1")
+        self.min_cache_ways = int(value_of_subpath("info/L3/min_cbm_bits"))
+        self.mbw_min = int(value_of_subpath("info/MB/min_bandwidth"))
+        self.mbw_gran = int(value_of_subpath("info/MB/bandwidth_gran"))
+        self.id_num = len(value_of_subpath("schemata").split(";"))
+
+    @staticmethod
+    def mount_resctrl():
+        task_path = os.path.join(RESCTRLPATH, "tasks")
+        if os.access(task_path, os.W_OK):
+            return
+        child = subprocess.Popen(
+            ["mount", "-t", "resctrl", "resctrl", "/sys/fs/resctrl"])
+        child.communicate(timeout=5)
+        if not os.access(task_path, os.W_OK):
+            LOGGER.error("Mount resctrl failed. skylark exit...")
+            raise OSError
+
+
 class HostInfo:
     def __init__(self):
         self.base_cpu = 0
@@ -180,6 +223,7 @@ class HostInfo:
         self.old_host_status_data = None
         self.turbo_is_enable = False
         self.extern_lib = None
+        self.resctrl_info = ResctrlInfo()
 
     def set_host_attribute(self):
         self.host_topo.get_total_cpu()
@@ -188,6 +232,9 @@ class HostInfo:
         self.extern_lib = msrlibrary.MsrLibrary()
         atexit.register(self.__clear_fd_percpu)
         self.extern_lib.allocate_fd_percpu(self.host_topo.max_cpu_nums)
+
+        self.resctrl_info.mount_resctrl()
+        self.resctrl_info.get_resctrl_infos()
 
         self.__get_cpu_family_model()
         self.__get_cpu_base_freq_mhz()
