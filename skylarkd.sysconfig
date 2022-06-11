@@ -1,0 +1,33 @@
+# TDP_THRESHOLD is a parameter used to control the highest power which VMs consume.
+#
+## Type:            float
+## Default:         0.95
+## Range:           0.8-1
+#
+TDP_THRESHOLD=0.95
+
+# FREQ_THRESHOLD is a parameter used to control the lowest freq when the power exceed tdp.
+#
+## Type:            float
+## Default:         0.95
+## Range:           0.9-1
+#
+FREQ_THRESHOLD=0.95
+
+# QUOTA_THRESHOLD is a parameter used to control the cpu bandwidth ratio of low
+# priority VMs when the cpu usage of low priority VMs is too high.
+#
+## Type:            float
+## Default:         0.9
+## Range:           0.8-1
+#
+QUOTA_THRESHOLD=0.9
+
+# ABNORMAL_THRESHOLD is a parameter used to control the maximum number of cycles of
+# low priority VMs limited cpu bandwidth.
+#
+## Type:            int
+## Default:         3
+## Range:           1-5
+#
+ABNORMAL_THRESHOLD=3
