@@ -139,10 +139,10 @@ def register_callback_event(conn, event_id, callback_func, opaque):
     return -1
 
 
-def deregister_callback_event(conn, event_id):
-    if conn is not None and event_id >= 0:
+def deregister_callback_event(conn, callback_id):
+    if conn is not None and callback_id >= 0:
         try:
-            conn.domainEventDeregisterAny(event_id)
+            conn.domainEventDeregisterAny(callback_id)
         except libvirt.libvirtError as error:
             LOGGER.warning("Deregister event exception %s" % str(error))
 
