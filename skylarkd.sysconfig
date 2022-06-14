@@ -31,3 +31,34 @@ QUOTA_THRESHOLD=0.9
 ## Range:           1-5
 #
 ABNORMAL_THRESHOLD=3
+
+# NET_QOS_MANAGEMENT is a parameter used to switch the ability to manage net QoS
+#
+## Type:           bool
+## Default:        false
+## Range:          false/true
+#
+NET_QOS_MANAGEMENT=false
+
+# NET_QOS_BANDWIDTH_(LOW|HIGH) are parameters used to set network bandwidth range
+# of low priority VMs. When the actual network bandwidth of high priority VMs is
+# above $NET_QOS_WATER_LINE, the net bandwidth of low priority VMs is limited to
+# $NET_QOS_BANDWIDTH_LOW, otherwise is limited to $NET_QOS_BANDWIDTH_HIGH.
+# 1) Supported unit: kb/mb/gb/KB/MB/GB. The actual effective bandwidth depends on
+#    max bandwidth of NICs.
+# 2) $NET_QOS_BANDWIDTH_LOW <= $NET_QOS_BANDWIDTH_HIGH
+#
+## Type:           string
+## Default:        20MB 1GB
+## Range:          see 1) and 2) above
+NET_QOS_BANDWIDTH_LOW=20MB
+NET_QOS_BANDWIDTH_HIGH=1GB
+
+# NET_QOS_WATER_LINE is a parameter used to set network bandwidth water line of high
+# priority VMs. For more information, see description of NET_QOS_BANDWIDTH_(LOW|HIGH).
+# 1) Supported unit: kb/mb/gb/KB/MB/GB.
+#
+## Type:           string
+## Default:        20MB
+## Range:          see 1) above
+NET_QOS_WATER_LINE=20MB

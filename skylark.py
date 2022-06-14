@@ -36,6 +36,7 @@ from data_collector.msrlibrary import MsrLibrary
 from logger import LOGGER
 from qos_analyzer.poweranalyzer import PowerAnalyzer
 from qos_controller.cpucontroller import CpuController
+from qos_controller.netcontroller import NetController
 import util
 
 QOS_MANAGER_ENTRY = None
@@ -59,6 +60,7 @@ class QosManager:
         self.scheduler = BackgroundScheduler(logger=LOGGER)
         self.power_analyzer = PowerAnalyzer()
         self.cpu_controller = CpuController()
+        self.net_controller = NetController()
 
     def scheduler_listener(self, event):
         if event.exception:
@@ -77,6 +79,7 @@ class QosManager:
     def init_qos_controller(self):
         self.cpu_controller.set_low_priority_cgroup()
         atexit.register(self.cpu_controller.reset_domain_bandwidth, self.data_collector.guest_info)
+        self.net_controller.init_net_controller()
 
     def start_scheduler(self):
         self.scheduler.start()
@@ -120,7 +123,7 @@ def create_pid_file():
 def remove_pid_file():
     if PID_FILE is not None:
         PID_FILE.close()
-        util.remove(PID_FILE.name)
+        util.remove_file(PID_FILE.name)
 
 
 def register_callback_event(conn, event_id, callback_func, opaque):
@@ -149,6 +152,9 @@ def event_id_set_state_callback(conn, dom, old_state, new_state, opaque):
         LOGGER.info("Occur state set event: domain %s(%d) status changed from %s to %s" % (
             dom.name(), dom.ID(), STATE_TO_STRING[old_state], STATE_TO_STRING[new_state]))
         QOS_MANAGER_ENTRY.reset_power_manage()
+        if vm_started:
+            QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
+                                QOS_MANAGER_ENTRY.data_collector.guest_info)
 
 
 def event_device_added_callback(conn, dom, dev_alias, opaque):
@@ -156,6 +162,8 @@ def event_device_added_callback(conn, dom, dev_alias, opaque):
     if device_name == "vcpu":
         LOGGER.info("Occur device added event: domain %s(%d) add vcpu" % (dom.name(), dom.ID()))
         QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
+                            QOS_MANAGER_ENTRY.data_collector.guest_info)
 
 
 def event_device_removed_callback(conn, dom, dev_alias, opaque):

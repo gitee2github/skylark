@@ -18,6 +18,7 @@ Description: This file is used for setting and updating of VMs info
 
 import re
 import time
+import os
 
 import libvirt
 
@@ -25,6 +26,7 @@ from logger import LOGGER
 
 HIGH_PRIORITY = "high_prio_machine"
 LOW_PRIORITY = "low_prio_machine"
+LOW_PRIO_PIDS_CGRP_PATH = "/sys/fs/cgroup/pids/low_prio_machine.slice"
 
 
 class DomainInfo:
@@ -38,6 +40,7 @@ class DomainInfo:
         self.package_usage_dict = {}
         self.last_update_time = 0
         self.global_quota_config = 0
+        self.cgroup_name = None
 
     def set_domain_attribute(self, domain, host_topo):
         self.domain_name = domain.name()
@@ -76,6 +79,14 @@ class DomainInfo:
             LOGGER.error("Domain %s(%d) priority setting (%s) is wrong!"
                          % (self.domain_name, self.domain_id, priority_info.groups()[0]))
             return -1
+
+        for subpath in os.listdir(LOW_PRIO_PIDS_CGRP_PATH):
+            if "machine-qemu\\x2d%d\\x2d" % self.domain_id in subpath:
+                self.cgroup_name = subpath
+                break
+        else:
+            LOGGER.error("Domain %d cgroup path can't found" % self.domain_id)
+            raise IOError
 
         LOGGER.debug("Domain %s(%d) Priority is %s"
                      % (self.domain_name, self.domain_id, priority_info.groups()[0]))
