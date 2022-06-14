@@ -62,3 +62,21 @@ NET_QOS_BANDWIDTH_HIGH=1GB
 ## Default:        20MB
 ## Range:          see 1) above
 NET_QOS_WATER_LINE=20MB
+
+# MIN_LLC_WAYS_LOW_VMS is a parameter used to control the minimum LLC ways accessible
+# to low priority vms.
+#
+## Type:           int
+## Default:        2
+## Range:          1-3
+#
+MIN_LLC_WAYS_LOW_VMS=2
+
+# MIN_MBW_LOW_VMS is a parameter used to control the minimum percentage of memory
+# bandwidth that can be used by low priority vms.
+#
+## Type:           float
+## Default:        0.1
+## Range:          0.1-0.2
+#
+MIN_MBW_LOW_VMS=0.1
