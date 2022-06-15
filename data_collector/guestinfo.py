@@ -154,27 +154,16 @@ class GuestInfo:
             self.vm_online_dict[dom.ID()] = dom
         for vm_id in self.vm_online_dict:
             if vm_id in self.vm_dict:
-                try:
-                    ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError:
+                ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
+                if ret < 0:
                     del self.vm_dict[vm_id]
                     continue
-                else:
-                    if ret < 0:
-                        del self.vm_dict[vm_id]
-                        continue
             else:
                 vm_info = DomainInfo()
-
-                try:
-                    ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError:
+                ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
+                if ret < 0:
+                    LOGGER.error("Domain %s status is abnormal!" % vm_id)
                     continue
-                else:
-                    if ret < 0:
-                        LOGGER.error("Domain %s status is abnormal!" % vm_id)
-                        continue
-
                 self.vm_dict[vm_id] = vm_info
 
             for cpu in range(host_topo.max_cpu_nums):
