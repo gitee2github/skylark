@@ -1,3 +1,13 @@
+# LOG_LEVEL is a parameter used to set the minimal log level. The order of log level
+# is critical > error > warning > info > debug. Logging messages which are less than
+# this parameter will not output.
+#
+## Type:            enum
+## Default:         warning
+## Range:           critical|error|warning|info|debug
+#
+LOG_LEVEL=warning
+
 # POWER_QOS_MANAGEMENT is a parameter used to switch the ability to manage power QoS.
 # Currently only support intel x86 platform. The power QoS Management can be optional
 # if the CPU usage of VMs is well constrained.
