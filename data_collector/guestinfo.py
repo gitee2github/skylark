@@ -24,6 +24,7 @@ import libvirt
 
 from logger import LOGGER
 
+DEFAULT_PRIORITY = "machine"
 HIGH_PRIORITY = "high_prio_machine"
 LOW_PRIORITY = "low_prio_machine"
 PIDS_CGRP_PATH = "/sys/fs/cgroup/pids"
@@ -71,7 +72,8 @@ class DomainInfo:
         if not priority_info.groups() or len(priority_info.groups()) != 1:
             LOGGER.error("Cgroup setting (%s) in XML is wrong!" % priority_info)
             return -1
-        if priority_info.groups()[0] == HIGH_PRIORITY:
+        if priority_info.groups()[0] == HIGH_PRIORITY or \
+           priority_info.groups()[0] == DEFAULT_PRIORITY:
             self.priority = 0
         elif priority_info.groups()[0] == LOW_PRIORITY:
             self.priority = 1
