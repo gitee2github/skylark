@@ -74,7 +74,8 @@ class QosManager:
         self.scheduler.add_listener(self.scheduler_listener, EVENT_JOB_ERROR)
 
     def init_data_collector(self):
-        self.data_collector.set_static_info()
+        self.data_collector.set_static_base_info()
+        self.data_collector.set_static_power_info()
 
     def init_qos_analyzer(self):
         self.power_analyzer.set_hotspot_threshold(self.data_collector)
@@ -88,14 +89,16 @@ class QosManager:
     def start_scheduler(self):
         self.scheduler.start()
 
-    def reset_power_manage(self):
+    def reset_data_collector(self):
         self.scheduler.pause()
-        self.data_collector.reset_status_info(self.vir_conn)
+        self.data_collector.reset_base_info(self.vir_conn)
+        self.data_collector.reset_power_info()
         self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
         self.scheduler.resume()
 
     def __do_power_manage(self):
-        self.data_collector.update_power_collector(self.vir_conn)
+        self.data_collector.update_base_info(self.vir_conn)
+        self.data_collector.update_power_info()
         self.power_analyzer.power_manage(self.data_collector, self.cpu_controller)
 
 
@@ -153,7 +156,7 @@ def event_lifecycle_callback(conn, dom, event, detail, opaque):
     vm_started = (event == libvirt.VIR_DOMAIN_EVENT_STARTED)
     vm_stopped = (event == libvirt.VIR_DOMAIN_EVENT_STOPPED)
     if vm_started or vm_stopped:
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
         if vm_started:
             QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
@@ -164,7 +167,7 @@ def event_device_added_callback(conn, dom, dev_alias, opaque):
     device_name = str(dev_alias[0:4])
     if device_name == "vcpu":
         LOGGER.info("Occur device added event: domain %s(%d) add vcpu" % (dom.name(), dom.ID()))
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
         QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
                             QOS_MANAGER_ENTRY.data_collector.guest_info)
 
@@ -173,7 +176,7 @@ def event_device_removed_callback(conn, dom, dev_alias, opaque):
     device_name = str(dev_alias[0:4])
     if device_name == "vcpu":
         LOGGER.info("Occur device removed event: domain %s(%d) removed vcpu" % (dom.name(), dom.ID()))
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
 
 
 def sigterm_handler(signo, stack):

@@ -225,16 +225,17 @@ class HostInfo:
         self.extern_lib = None
         self.resctrl_info = ResctrlInfo()
 
-    def set_host_attribute(self):
+    def set_host_base_attribute(self):
         self.host_topo.get_total_cpu()
         self.host_topo.get_cpu_topo()
 
+        self.resctrl_info.mount_resctrl()
+        self.resctrl_info.get_resctrl_infos()
+
+    def set_host_power_attribute(self):
         self.extern_lib = msrlibrary.MsrLibrary()
         atexit.register(self.__clear_fd_percpu)
         self.extern_lib.allocate_fd_percpu(self.host_topo.max_cpu_nums)
-
-        self.resctrl_info.mount_resctrl()
-        self.resctrl_info.get_resctrl_infos()
 
         self.__get_cpu_family_model()
         self.__get_cpu_base_freq_mhz()
@@ -247,7 +248,7 @@ class HostInfo:
         self.old_host_status_data = HostStatusData(self.host_topo)
         self.old_host_status_data.get_status_data(self.extern_lib, self.aperf_mperf_multiplier)
 
-    def update_host_info(self):
+    def update_host_power_info(self):
         curr_host_status_data = HostStatusData(self.host_topo)
 
         curr_host_status_data.get_status_data(self.extern_lib, self.aperf_mperf_multiplier)

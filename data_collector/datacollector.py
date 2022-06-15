@@ -25,14 +25,21 @@ class DataCollector:
         self.host_info = hostinfo.HostInfo()
         self.guest_info = guestinfo.GuestInfo()
 
-    def set_static_info(self):
-        self.host_info.set_host_attribute()
+    def set_static_base_info(self):
+        self.host_info.set_host_base_attribute()
 
-    def reset_status_info(self, vir_conn):
+    def set_static_power_info(self):
+        self.host_info.set_host_power_attribute()
+
+    def reset_base_info(self, vir_conn):
         self.guest_info.clear_guest_info()
-        self.host_info.update_host_info()
         self.guest_info.update_guest_info(vir_conn, self.host_info.host_topo)
 
-    def update_power_collector(self, vir_conn):
-        self.host_info.update_host_info()
+    def reset_power_info(self):
+        self.host_info.update_host_power_info()
+
+    def update_base_info(self, vir_conn):
         self.guest_info.update_guest_info(vir_conn, self.host_info.host_topo)
+
+    def update_power_info(self):
+        self.host_info.update_host_power_info()
