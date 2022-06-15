@@ -57,8 +57,8 @@ class HostTopology:
         return int(util.file_read("/sys/devices/system/cpu/cpu%d/topology/physical_package_id" % cpu))
 
     def get_total_cpu(self):
-        cpu_possible = util.file_read("/sys/devices/system/cpu/possible")
-        self.max_cpu_nums = int(cpu_possible.strip('\n').split('-')[1]) + 1
+        cpu_present = util.file_read("/sys/devices/system/cpu/present")
+        self.max_cpu_nums = int(cpu_present.strip('\n').split('-')[1]) + 1
         LOGGER.info("Max cpu nums is %d" % self.max_cpu_nums)
 
     def get_cpu_topo(self):
