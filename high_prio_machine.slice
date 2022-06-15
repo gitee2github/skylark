@@ -3,10 +3,6 @@ Description=High Priority Virtual Machine and Container Slice
 Documentation=man:systemd.special(7)
 Before=slices.target
 [Slice]
-CPUSetMems=all
-CPUSetCpus=all
-CPUSetCloneChildren=1
 MemoryAccounting=true
 CPUAccounting=true
-FreezerAccounting=true
 BlockIOAccounting=true
