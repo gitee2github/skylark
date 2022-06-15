@@ -44,6 +44,8 @@ NET_QOS_MANAGEMENT=false
 # of low priority VMs. When the actual network bandwidth of high priority VMs is
 # above $NET_QOS_WATER_LINE, the net bandwidth of low priority VMs is limited to
 # $NET_QOS_BANDWIDTH_LOW, otherwise is limited to $NET_QOS_BANDWIDTH_HIGH.
+# Suggestion: set these parameters according to high-priority application's
+# sensibility to network bandwidth. The more sensitive, the less value should be.
 # 1) Supported unit: kb/mb/gb/KB/MB/GB. The actual effective bandwidth depends on
 #    max bandwidth of NICs.
 # 2) $NET_QOS_BANDWIDTH_LOW <= $NET_QOS_BANDWIDTH_HIGH
@@ -56,6 +58,9 @@ NET_QOS_BANDWIDTH_HIGH=1GB
 
 # NET_QOS_WATER_LINE is a parameter used to set network bandwidth water line of high
 # priority VMs. For more information, see description of NET_QOS_BANDWIDTH_(LOW|HIGH).
+# Suggestion: set the waterline according to high-priority application's sensibility
+# to network bandwidth. In general, it shouldn't be very high. The more sensitive, the
+# less value should be.
 # 1) Supported unit: kb/mb/gb/KB/MB/GB.
 #
 ## Type:           string
