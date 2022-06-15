@@ -64,21 +64,26 @@ class QosManager:
         self.cpu_controller = CpuController()
         self.net_controller = NetController()
         self.cachembw_controller = CacheMBWController()
+        self.has_job = False
 
     def scheduler_listener(self, event):
         if event.exception:
             self.scheduler.remove_all_jobs()
 
     def init_scheduler(self):
-        self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
+            self.has_job = True
         self.scheduler.add_listener(self.scheduler_listener, EVENT_JOB_ERROR)
 
     def init_data_collector(self):
         self.data_collector.set_static_base_info()
-        self.data_collector.set_static_power_info()
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.data_collector.set_static_power_info()
 
     def init_qos_analyzer(self):
-        self.power_analyzer.set_hotspot_threshold(self.data_collector)
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.power_analyzer.set_hotspot_threshold(self.data_collector)
 
     def init_qos_controller(self):
         self.cpu_controller.set_low_priority_cgroup()
@@ -92,8 +97,9 @@ class QosManager:
     def reset_data_collector(self):
         self.scheduler.pause()
         self.data_collector.reset_base_info(self.vir_conn)
-        self.data_collector.reset_power_info()
-        self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.data_collector.reset_power_info()
+            self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
         self.scheduler.resume()
 
     def __do_power_manage(self):
@@ -245,7 +251,7 @@ def func_daemon():
     LOGGER.info("Libvirtd connected and libvirt event registered.")
 
     while LIBVIRT_CONN.isAlive():
-        if not QOS_MANAGER_ENTRY.scheduler.get_jobs():
+        if not QOS_MANAGER_ENTRY.scheduler.get_jobs() and QOS_MANAGER_ENTRY.has_job:
             LOGGER.error("The Scheduler detects an exception, process will exit!")
             break
         try:
@@ -299,6 +305,9 @@ def setup_vm_env():
 
 
 def check_dev_msr():
+    if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() != "true":
+        return
+
     try:
         os.stat(MSR_PATH)
     except FileNotFoundError:
@@ -323,6 +332,9 @@ def check_os_platform():
 
 
 def check_cpu_arch():
+    if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() != "true":
+        return
+
     extern_lib = None
     genuine_intel = 0
 
