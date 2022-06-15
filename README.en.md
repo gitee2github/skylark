@@ -4,19 +4,27 @@
 Skylark is a next-generation QoS-aware scheduler which provides coordinated resource scheduling for co-located applications with different QoS requirements. Typical applications are VM and Container. The architecture is highly scalable, so it's easy to be extended to support new types of applications and resources in the future.
 
 #### Software Architecture
-Software architecture description
+
+Totally consist of four components：
+1.  data_collector (collect data)
+2.  qos_analyzer (analysis QoS status)
+3.  qos_controller (control QoS status)
+4.  skylark.py (drive above components periodically)
 
 #### Installation
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1.  git clone <url>
+2.  make && make install
+3.  systemctl daemon-reload
 
 #### Instructions
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+Startup
+1.  systemctl start skylarkd
+
+Modify parameters and restart
+1.  vim /etc/sysconfig/skylarkd
+2.  systemctl restart skylarkd
 
 #### Contribution
 
@@ -24,13 +32,3 @@ Software architecture description
 2.  Create Feat_xxx branch
 3.  Commit your code
 4.  Create Pull Request
-
-
-#### Gitee Feature
-
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)

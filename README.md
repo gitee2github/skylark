@@ -4,20 +4,27 @@
 Skylark is a next-generation QoS-aware scheduler which provides coordinated resource scheduling for co-located applications with different QoS requirements. Typical applications are VM and Container. The architecture is highly scalable, so it's easy to be extended to support new types of applications and resources in the future.
 
 #### 软件架构
-软件架构说明
 
+总体分为四部分：
+1.  data_collector（数据采集模块）
+2.  qos_analyzer（QoS实时分析模块）
+3.  qos_controller（QoS实时控制模块）
+4.  skylark.py（周期性驱动以上三个模块）
 
 #### 安装教程
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1.  git clone 仓库url
+2.  make && make install
+3.  systemctl daemon-reload
 
 #### 使用说明
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+启动
+1.  systemctl start skylarkd
+
+修改参数并重启
+1.  vim /etc/sysconfig/skylarkd
+2.  systemctl restart skylarkd
 
 #### 参与贡献
 
@@ -25,13 +32,3 @@ Skylark is a next-generation QoS-aware scheduler which provides coordinated reso
 2.  新建 Feat_xxx 分支
 3.  提交代码
 4.  新建 Pull Request
-
-
-#### 特技
-
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
