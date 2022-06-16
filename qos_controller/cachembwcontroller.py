@@ -26,6 +26,10 @@ from data_collector.hostinfo import ResctrlInfo
 
 LOW_VMS_RESGROUP_PATH = "/sys/fs/resctrl/low_prio_machine"
 LOW_VMS_PID_CGRP_PATH = "/sys/fs/cgroup/pids/low_prio_machine.slice"
+LOW_MBW_INIT_FLOOR = 0.1
+LOW_MBW_INIT_CEIL = 0.2
+LOW_CACHE_INIT_FLOOR = 1
+LOW_CACHE_INIT_CEIL = 3
 
 
 class ResgroupFileOperations:
@@ -60,12 +64,18 @@ class CacheMBWController:
 
     def __get_low_init_alloc(self, resctrl_info: ResctrlInfo):
         low_vms_mbw_init = float(os.getenv("MIN_MBW_LOW_VMS"))
+        if not LOW_MBW_INIT_FLOOR <= low_vms_mbw_init <= LOW_MBW_INIT_FLOOR:
+            LOGGER.error("Invalid environment variables: MIN_MBW_LOW_VMS")
+            raise Exception
         low_vms_cache_init = int(os.getenv("MIN_LLC_WAYS_LOW_VMS"))
+        if not LOW_CACHE_INIT_FLOOR <= low_vms_cache_init <= LOW_CACHE_INIT_CEIL:
+            LOGGER.error("Invalid environment variables: MIN_MBW_LOW_VMS")
+            raise Exception
         mbw_gran = resctrl_info.mbw_gran
         mbw_min = resctrl_info.mbw_min
         max_cache_ways = resctrl_info.max_cache_ways
         if low_vms_cache_init >= max_cache_ways:
-            LOGGER.error("Cache ways: %d, low_vms_cache_init: %d" % 
+            LOGGER.error("Cache ways: %d, low_vms_cache_init: %d" %
                          (max_cache_ways, low_vms_cache_init))
             raise Exception
         low_vms_cache_bit_mask = \

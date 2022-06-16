@@ -26,7 +26,7 @@ from logger import LOGGER
 
 HIGH_PRIORITY = "high_prio_machine"
 LOW_PRIORITY = "low_prio_machine"
-LOW_PRIO_PIDS_CGRP_PATH = "/sys/fs/cgroup/pids/low_prio_machine.slice"
+PIDS_CGRP_PATH = "/sys/fs/cgroup/pids"
 
 
 class DomainInfo:
@@ -79,8 +79,8 @@ class DomainInfo:
             LOGGER.error("Domain %s(%d) priority setting (%s) is wrong!"
                          % (self.domain_name, self.domain_id, priority_info.groups()[0]))
             return -1
-
-        for subpath in os.listdir(LOW_PRIO_PIDS_CGRP_PATH):
+        vms_cgrp_path = os.path.join(PIDS_CGRP_PATH, priority_info.groups()[0] + ".slice")
+        for subpath in os.listdir(vms_cgrp_path):
             if "machine-qemu\\x2d%d\\x2d" % self.domain_id in subpath:
                 self.cgroup_name = subpath
                 break
