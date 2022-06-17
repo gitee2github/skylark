@@ -48,10 +48,11 @@ PID_FILE = None
 MSR_PATH = "/dev/cpu/0/msr"
 PID_FILE_NAME = "/var/run/skylarkd.pid"
 
-STATE_TO_STRING = ('VIR_DOMAIN_NOSTATE', 'VIR_DOMAIN_RUNNING',
-                   'VIR_DOMAIN_BLOCKED', 'VIR_DOMAIN_PAUSED',
-                   'VIR_DOMAIN_SHUTDOWN', 'VIR_DOMAIN_SHUTOFF',
-                   'VIR_DOMAIN_CRASHED', 'VIR_DOMAIN_PMSUSPENDED', 'unknown')
+STATE_TO_STRING = ['VIR_DOMAIN_EVENT_DEFINED',  'VIR_DOMAIN_EVENT_UNDEFINED',
+                   'VIR_DOMAIN_EVENT_STARTED',  'VIR_DOMAIN_EVENT_SUSPENDED',
+                   'VIR_DOMAIN_EVENT_RESUMED',  'VIR_DOMAIN_EVENT_STOPPED',
+                   'VIR_DOMAIN_EVENT_SHUTDOWN', 'VIR_DOMAIN_EVENT_PMSUSPENDED',
+                   'VIR_DOMAIN_EVENT_CRASHED',  'VIR_DOMAIN_EVENT_LAST']
 
 
 class QosManager:
@@ -130,7 +131,7 @@ def remove_pid_file():
 
 
 def register_callback_event(conn, event_id, callback_func, opaque):
-    if conn is not None and event_id > 0:
+    if conn is not None and event_id >= 0:
         try:
             return conn.domainEventRegisterAny(None, event_id, callback_func, opaque)
         except libvirt.libvirtError as error:
@@ -138,28 +139,27 @@ def register_callback_event(conn, event_id, callback_func, opaque):
     return -1
 
 
-def deregister_callback_event(conn, event_id):
-    if conn is not None and event_id >= 0:
+def deregister_callback_event(conn, callback_id):
+    if conn is not None and callback_id >= 0:
         try:
-            conn.domainEventDeregisterAny(event_id)
+            conn.domainEventDeregisterAny(callback_id)
         except libvirt.libvirtError as error:
             LOGGER.warning("Deregister event exception %s" % str(error))
 
 
-def event_id_set_state_callback(conn, dom, old_state, new_state, opaque):
-    vm_started = STATE_TO_STRING[old_state] == 'VIR_DOMAIN_PAUSED' and \
-                 STATE_TO_STRING[new_state] == 'VIR_DOMAIN_RUNNING'
-    vm_shutoff = STATE_TO_STRING[new_state] == 'VIR_DOMAIN_SHUTOFF'
-
-    if vm_started or vm_shutoff:
-        LOGGER.info("Occur state set event: domain %s(%d) status changed from %s to %s" % (
-            dom.name(), dom.ID(), STATE_TO_STRING[old_state], STATE_TO_STRING[new_state]))
+def event_lifecycle_callback(conn, dom, event, detail, opaque):
+    LOGGER.info("Occur lifecycle event: domain %s(%d) state changed to %s" % (
+                dom.name(), dom.ID(), STATE_TO_STRING[event]))
+    vm_started = (event == libvirt.VIR_DOMAIN_EVENT_STARTED)
+    vm_stopped = (event == libvirt.VIR_DOMAIN_EVENT_STOPPED)
+    if vm_started or vm_stopped:
         QOS_MANAGER_ENTRY.reset_power_manage()
         if vm_started:
             QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
             QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
                                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
+    return 0
 
 
 def event_device_added_callback(conn, dom, dev_alias, opaque):
@@ -230,8 +230,8 @@ def func_daemon():
     QOS_MANAGER_ENTRY.start_scheduler()
 
     event_set_state_id = register_callback_event(LIBVIRT_CONN,
-                                                 libvirt.VIR_DOMAIN_EVENT_ID_SET_STATE,
-                                                 event_id_set_state_callback, QOS_MANAGER_ENTRY)
+                                                 libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE,
+                                                 event_lifecycle_callback, QOS_MANAGER_ENTRY)
     event_device_added_id = register_callback_event(LIBVIRT_CONN,
                                                     libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
                                                     event_device_added_callback, QOS_MANAGER_ENTRY)
