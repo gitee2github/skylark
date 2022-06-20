@@ -1,7 +1,7 @@
 [Unit]
 Description=skylarkd - The daemon that manages the qos of vm hybrid deployed.
-After=libvirtd.service low_prio_machine.slice
-Requires=low_prio_machine.slice
+After=libvirtd.service low_prio_machine.slice high_prio_machine.slice
+Requires=low_prio_machine.slice high_prio_machine.slice
 
 [Service]
 Slice = system.slice
@@ -9,7 +9,7 @@ OOMScoreAdjust=-500
 Type=forking
 EnvironmentFile=/etc/sysconfig/skylarkd
 PIDFile=/var/run/skylarkd.pid
-ExecStart=/usr/bin/python /usr/sbin/skylarkd
+ExecStart=/usr/bin/python3 /usr/sbin/skylarkd
 KillSignal=SIGTERM
 KillMode=control-group
 Restart=on-failure
