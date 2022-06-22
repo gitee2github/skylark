@@ -188,7 +188,7 @@ def func_daemon():
     global LIBVIRT_CONN
     global QOS_MANAGER_ENTRY
 
-    event_set_state_id = -1
+    event_lifecycle_id = -1
     event_device_added_id = -1
     event_device_removed_id = -1
 
@@ -197,7 +197,7 @@ def func_daemon():
 
     @atexit.register
     def daemon_exit_func():
-        deregister_callback_event(LIBVIRT_CONN, event_set_state_id)
+        deregister_callback_event(LIBVIRT_CONN, event_lifecycle_id)
         deregister_callback_event(LIBVIRT_CONN, event_device_added_id)
         deregister_callback_event(LIBVIRT_CONN, event_device_removed_id)
         LIBVIRT_CONN.close()
@@ -229,7 +229,7 @@ def func_daemon():
     QOS_MANAGER_ENTRY.init_qos_controller()
     QOS_MANAGER_ENTRY.start_scheduler()
 
-    event_set_state_id = register_callback_event(LIBVIRT_CONN,
+    event_lifecycle_id = register_callback_event(LIBVIRT_CONN,
                                                  libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE,
                                                  event_lifecycle_callback, QOS_MANAGER_ENTRY)
     event_device_added_id = register_callback_event(LIBVIRT_CONN,
@@ -238,9 +238,9 @@ def func_daemon():
     event_device_removed_id = register_callback_event(LIBVIRT_CONN,
                                                       libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
                                                       event_device_removed_callback, QOS_MANAGER_ENTRY)
-    if event_set_state_id < 0 or event_device_added_id < 0 or event_device_removed_id < 0:
+    if event_lifecycle_id < 0 or event_device_added_id < 0 or event_device_removed_id < 0:
         LOGGER.error("Failed to register libvirt event %d, %d, %d"
-                     % (event_set_state_id, event_device_added_id, event_device_removed_id))
+                     % (event_lifecycle_id, event_device_added_id, event_device_removed_id))
         sys.exit(1)
 
     LOGGER.info("Libvirtd connected and libvirt event registered.")
