@@ -17,7 +17,6 @@ Description: This file is used for providing a CPU QoS controller
 # @code
 
 import os
-import re
 
 from logger import LOGGER
 import util
@@ -41,26 +40,12 @@ class CpuController:
             LOGGER.error("Failed to set low priority cpu qos level: %s" % str(error))
             raise
 
-    @staticmethod
-    def __lookup_vms_cgroup_path(path):
-        dir_list = os.listdir(path)
-        vm_path_dict = {}
-
-        for dir_name in dir_list:
-            domain_id = re.search("machine-qemu\\\\x2d([0-9]+)\\\\x2d", dir_name)
-            if not domain_id:
-                continue
-            vm_path_dict[int(domain_id.group(1))] = dir_name
-
-        return vm_path_dict
-
     def limit_domain_bandwidth(self, guest_info, quota_threshold, abnormal_threshold):
         global MIN_QUOTA_US
         period_path = os.path.join(LOW_PRIORITY_SLICES_PATH, "cpu.cfs_period_us")
         cfs_period_us = int(util.file_read(period_path))
         MIN_QUOTA_US = 0.9 * cfs_period_us
         vm_slices_path = LOW_PRIORITY_SLICES_PATH
-        vms_scope_path_dict = self.__lookup_vms_cgroup_path(vm_slices_path)
 
         for domain_id in self.domain_adjust_dict:
             if self.domain_adjust_dict.get(domain_id) == abnormal_threshold:
@@ -69,7 +54,7 @@ class CpuController:
                 if domain_quota_us < MIN_QUOTA_US:
                     continue
 
-                quota_path = os.path.join(vm_slices_path, vms_scope_path_dict.get(domain_id), "cpu.cfs_quota_us")
+                quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
                 try:
                     util.file_write(quota_path, str(domain_quota_us))
@@ -82,12 +67,11 @@ class CpuController:
 
     def recovery_domain_bandwidth(self, guest_info):
         vm_slices_path = LOW_PRIORITY_SLICES_PATH
-        vms_scope_path_dict = self.__lookup_vms_cgroup_path(vm_slices_path)
 
         for domain_id in self.domain_recovery_list:
             domain = guest_info.low_prio_vm_dict[domain_id]
             initial_bandwidth = domain.global_quota_config
-            quota_path = os.path.join(vm_slices_path, vms_scope_path_dict.get(domain_id), "cpu.cfs_quota_us")
+            quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
             try:
                 util.file_write(quota_path, str(initial_bandwidth))
@@ -100,12 +84,11 @@ class CpuController:
 
     def reset_domain_bandwidth(self, guest_info):
         vm_slices_path = LOW_PRIORITY_SLICES_PATH
-        vms_scope_path_dict = self.__lookup_vms_cgroup_path(vm_slices_path)
 
         for domain_id in guest_info.low_prio_vm_dict:
             domain = guest_info.low_prio_vm_dict.get(domain_id)
             initial_bandwidth = domain.global_quota_config
-            quota_path = os.path.join(vm_slices_path, vms_scope_path_dict.get(domain_id), "cpu.cfs_quota_us")
+            quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
             try:
                 util.file_write(quota_path, str(initial_bandwidth))
