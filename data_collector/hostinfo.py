@@ -201,7 +201,7 @@ class ResctrlInfo:
         if os.access(task_path, os.W_OK):
             return
         child = subprocess.Popen(
-            ["mount", "-t", "resctrl", "resctrl", "/sys/fs/resctrl"])
+            ["/usr/bin/mount", "-t", "resctrl", "resctrl", "/sys/fs/resctrl"])
         child.communicate(timeout=5)
         if not os.access(task_path, os.W_OK):
             LOGGER.error("Mount resctrl failed. skylark exit...")
