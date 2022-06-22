@@ -158,7 +158,7 @@ def event_lifecycle_callback(conn, dom, event, detail, opaque):
             QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
             QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
-                                                QOS_MANAGER_ENTRY.data_collector.guest_info)
+                                QOS_MANAGER_ENTRY.data_collector.guest_info)
     return 0
 
 
@@ -170,7 +170,7 @@ def event_device_added_callback(conn, dom, dev_alias, opaque):
         QOS_MANAGER_ENTRY.net_controller.domain_updated(dom,
                             QOS_MANAGER_ENTRY.data_collector.guest_info)
         QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
-                                                QOS_MANAGER_ENTRY.data_collector.guest_info)
+                            QOS_MANAGER_ENTRY.data_collector.guest_info)
 
 
 def event_device_removed_callback(conn, dom, dev_alias, opaque):
