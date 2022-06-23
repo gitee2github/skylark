@@ -181,7 +181,7 @@ class GuestInfo:
                                                          self.vm_dict.get(vm_id).domain_name,
                                                          self.vm_dict.get(vm_id).priority))
 
-        for vm_id in self.vm_dict:
+        for vm_id in list(self.vm_dict):
             if vm_id not in self.vm_online_dict:
                 del self.vm_dict[vm_id]
             elif vm_id not in self.low_prio_vm_dict and self.vm_dict.get(vm_id).priority == 1:

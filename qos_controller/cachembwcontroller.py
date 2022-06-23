@@ -69,7 +69,7 @@ class CacheMBWController:
             raise Exception
         low_vms_cache_init = int(os.getenv("MIN_LLC_WAYS_LOW_VMS"))
         if not LOW_CACHE_INIT_FLOOR <= low_vms_cache_init <= LOW_CACHE_INIT_CEIL:
-            LOGGER.error("Invalid environment variables: MIN_MBW_LOW_VMS")
+            LOGGER.error("Invalid environment variables: MIN_LLC_WAYS_LOW_VMS")
             raise Exception
         mbw_gran = resctrl_info.mbw_gran
         mbw_min = resctrl_info.mbw_min
