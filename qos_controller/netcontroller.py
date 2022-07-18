@@ -25,7 +25,6 @@ from logger import LOGGER
 import util
 
 NET_CGRP_PATH = "/sys/fs/cgroup/net_cls/low_prio_machine.slice"
-PID_CGRP_PATH = "/sys/fs/cgroup/pids/low_prio_machine.slice"
 
 
 class NetController:
@@ -46,13 +45,6 @@ class NetController:
         self.__set_low_prio_bandwidth()
         self.__set_high_prio_waterline()
 
-    def domain_updated(self, dom, guest_info: GuestInfo):
-        if not self.enable_management == "true":
-            return
-
-        if dom.ID() in guest_info.low_prio_vm_dict:
-            self.__net_add_vm_pids(guest_info.vm_dict[dom.ID()].cgroup_name)
-
     def __finalize_net_controller(self):
         self.__bwmcli("-d")
 
@@ -66,26 +58,12 @@ class NetController:
         for nic in nics_phy:
             self.__bwmcli("-e", nic)
 
-    @staticmethod
-    def __net_add_vm_pids(cgrp_name):
-        tasks_path = os.path.join(PID_CGRP_PATH, cgrp_name, "tasks")
-        if not os.access(tasks_path, os.R_OK):
-            LOGGER.warning("The path %s is not readable, please check." % tasks_path)
-            return
-        with open(tasks_path) as tasks:
-            for task in tasks:
-                util.file_write(os.path.join(NET_CGRP_PATH, "tasks"), task)
-
     def __set_cgroup_priority(self):
         if not os.path.exists(NET_CGRP_PATH):
             os.mkdir(NET_CGRP_PATH)
-        self.__bwmcli("-s", NET_CGRP_PATH, "-1")
+        for dirpath, dirs, files in os.walk(NET_CGRP_PATH):
+            self.__bwmcli("-s", dirpath, "-1")
 
-        with os.scandir(PID_CGRP_PATH) as it:
-            for entry in it:
-                if entry.is_file():
-                    continue
-                self.__net_add_vm_pids(entry.name)
 
     def __set_low_prio_bandwidth(self):
         bandwidth_range = "%s,%s" % (self.bandwidth_low, self.bandwidth_high)
