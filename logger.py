@@ -16,19 +16,30 @@ Description: This file is used for logger
 """
 # @code
 
+import os
 import logging
 import logging.handlers
 
 DEFAULT_LOG_FMT = '%(asctime)s|%(filename)s|%(process)d|%(levelname)s:%(message)s'
 DEFAULT_LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 DEFAULT_LOG_PATH = '/var/log/skylark'
+LOGGING_LEVEL = {"critical" : logging.CRITICAL,
+                 "error"    : logging.ERROR,
+                 "warning"  : logging.WARNING,
+                 "info"     : logging.INFO,
+                 "debug"    : logging.DEBUG,
+                }
 
 
 class Logger:
     def __init__(self):
         self._logger = logging.getLogger()
         self._logger.addHandler(self._get_rotate_handler())
-        self._logger.setLevel(logging.INFO)
+
+        log_level = os.getenv("LOG_LEVEL", "").lower()
+        if log_level not in LOGGING_LEVEL:
+            log_level = "warning"
+        self._logger.setLevel(LOGGING_LEVEL[log_level])
 
     @staticmethod
     def _get_rotate_handler():

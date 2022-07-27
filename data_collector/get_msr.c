@@ -13,6 +13,8 @@
 * Description: This file is used for providing a dynamic link library
 */
 
+#ifdef __x86_64__
+
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -178,3 +180,5 @@ int get_cpu_status_data(int cpu, StructPerfPointer p)
     }
     return -2; /* -2 denotes timeout error. */
 }
+
+#endif /* __x86_64__ */

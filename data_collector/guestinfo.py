@@ -24,6 +24,7 @@ import libvirt
 
 from logger import LOGGER
 
+DEFAULT_PRIORITY = "machine"
 HIGH_PRIORITY = "high_prio_machine"
 LOW_PRIORITY = "low_prio_machine"
 PIDS_CGRP_PATH = "/sys/fs/cgroup/pids"
@@ -71,7 +72,8 @@ class DomainInfo:
         if not priority_info.groups() or len(priority_info.groups()) != 1:
             LOGGER.error("Cgroup setting (%s) in XML is wrong!" % priority_info)
             return -1
-        if priority_info.groups()[0] == HIGH_PRIORITY:
+        if priority_info.groups()[0] == HIGH_PRIORITY or \
+           priority_info.groups()[0] == DEFAULT_PRIORITY:
             self.priority = 0
         elif priority_info.groups()[0] == LOW_PRIORITY:
             self.priority = 1
@@ -152,27 +154,16 @@ class GuestInfo:
             self.vm_online_dict[dom.ID()] = dom
         for vm_id in self.vm_online_dict:
             if vm_id in self.vm_dict:
-                try:
-                    ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError:
+                ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
+                if ret < 0:
                     del self.vm_dict[vm_id]
                     continue
-                else:
-                    if ret < 0:
-                        del self.vm_dict[vm_id]
-                        continue
             else:
                 vm_info = DomainInfo()
-
-                try:
-                    ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError:
+                ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
+                if ret < 0:
+                    LOGGER.error("Domain %s status is abnormal!" % vm_id)
                     continue
-                else:
-                    if ret < 0:
-                        LOGGER.error("Domain %s status is abnormal!" % vm_id)
-                        continue
-
                 self.vm_dict[vm_id] = vm_info
 
             for cpu in range(host_topo.max_cpu_nums):

@@ -64,20 +64,26 @@ class QosManager:
         self.cpu_controller = CpuController()
         self.net_controller = NetController()
         self.cachembw_controller = CacheMBWController()
+        self.has_job = False
 
     def scheduler_listener(self, event):
         if event.exception:
             self.scheduler.remove_all_jobs()
 
     def init_scheduler(self):
-        self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
+            self.has_job = True
         self.scheduler.add_listener(self.scheduler_listener, EVENT_JOB_ERROR)
 
     def init_data_collector(self):
-        self.data_collector.set_static_info()
+        self.data_collector.set_static_base_info()
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.data_collector.set_static_power_info()
 
     def init_qos_analyzer(self):
-        self.power_analyzer.set_hotspot_threshold(self.data_collector)
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.power_analyzer.set_hotspot_threshold(self.data_collector)
 
     def init_qos_controller(self):
         self.cpu_controller.set_low_priority_cgroup()
@@ -88,14 +94,17 @@ class QosManager:
     def start_scheduler(self):
         self.scheduler.start()
 
-    def reset_power_manage(self):
+    def reset_data_collector(self):
         self.scheduler.pause()
-        self.data_collector.reset_status_info(self.vir_conn)
-        self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
+        self.data_collector.reset_base_info(self.vir_conn)
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            self.data_collector.reset_power_info()
+            self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
         self.scheduler.resume()
 
     def __do_power_manage(self):
-        self.data_collector.update_power_collector(self.vir_conn)
+        self.data_collector.update_base_info(self.vir_conn)
+        self.data_collector.update_power_info()
         self.power_analyzer.power_manage(self.data_collector, self.cpu_controller)
 
 
@@ -153,7 +162,7 @@ def event_lifecycle_callback(conn, dom, event, detail, opaque):
     vm_started = (event == libvirt.VIR_DOMAIN_EVENT_STARTED)
     vm_stopped = (event == libvirt.VIR_DOMAIN_EVENT_STOPPED)
     if vm_started or vm_stopped:
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
         if vm_started:
             QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
                                 QOS_MANAGER_ENTRY.data_collector.guest_info)
@@ -164,7 +173,7 @@ def event_device_added_callback(conn, dom, dev_alias, opaque):
     device_name = str(dev_alias[0:4])
     if device_name == "vcpu":
         LOGGER.info("Occur device added event: domain %s(%d) add vcpu" % (dom.name(), dom.ID()))
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
         QOS_MANAGER_ENTRY.cachembw_controller.domain_updated(dom,
                             QOS_MANAGER_ENTRY.data_collector.guest_info)
 
@@ -173,7 +182,7 @@ def event_device_removed_callback(conn, dom, dev_alias, opaque):
     device_name = str(dev_alias[0:4])
     if device_name == "vcpu":
         LOGGER.info("Occur device removed event: domain %s(%d) removed vcpu" % (dom.name(), dom.ID()))
-        QOS_MANAGER_ENTRY.reset_power_manage()
+        QOS_MANAGER_ENTRY.reset_data_collector()
 
 
 def sigterm_handler(signo, stack):
@@ -242,7 +251,7 @@ def func_daemon():
     LOGGER.info("Libvirtd connected and libvirt event registered.")
 
     while LIBVIRT_CONN.isAlive():
-        if not QOS_MANAGER_ENTRY.scheduler.get_jobs():
+        if not QOS_MANAGER_ENTRY.scheduler.get_jobs() and QOS_MANAGER_ENTRY.has_job:
             LOGGER.error("The Scheduler detects an exception, process will exit!")
             break
         try:
@@ -296,6 +305,9 @@ def setup_vm_env():
 
 
 def check_dev_msr():
+    if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() != "true":
+        return
+
     try:
         os.stat(MSR_PATH)
     except FileNotFoundError:
@@ -320,6 +332,9 @@ def check_os_platform():
 
 
 def check_cpu_arch():
+    if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() != "true":
+        return
+
     extern_lib = None
     genuine_intel = 0
 
