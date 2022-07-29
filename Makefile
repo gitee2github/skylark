@@ -14,8 +14,8 @@ install: skylarkd libskylarkmsr.so skylarkd.service skylarkd.sysconfig low_prio_
 	install -T -D libskylarkmsr.so $(DESTDIR)/usr/lib/libskylarkmsr.so
 	install -T -D -m 644 skylarkd.sysconfig $(DESTDIR)/etc/sysconfig/skylarkd
 	install -T -D -m 644 skylarkd.service $(DESTDIR)/usr/lib/systemd/system/skylarkd.service
-	install -T -D -m 644 low_prio_machine.slice $(DESTDIR)/etc/systemd/system/low_prio_machine.slice
-	install -T -D -m 644 high_prio_machine.slice $(DESTDIR)/etc/systemd/system/high_prio_machine.slice
+	install -T -D -m 644 low_prio_machine.slice $(DESTDIR)/usr/lib/systemd/system/low_prio_machine.slice
+	install -T -D -m 644 high_prio_machine.slice $(DESTDIR)/usr/lib/systemd/system/high_prio_machine.slice
 
 .PHONY: clean
 clean:
