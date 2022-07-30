@@ -78,6 +78,7 @@ class QosManager:
 
     def init_data_collector(self):
         self.data_collector.set_static_base_info()
+        self.data_collector.update_base_info(self.vir_conn)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.data_collector.set_static_power_info()
 

@@ -22,20 +22,27 @@ LOG_LEVEL=info
 POWER_QOS_MANAGEMENT=false
 
 # TDP_THRESHOLD is a parameter used to control the highest power which VMs consume.
+# When the power of CPU package exceeds (tdp * TDP_THRESHOLD), Skylark will begin to
+# do power QoS management.
 #
 ## Type:            float
-## Default:         0.95
+## Default:         0.98
 ## Range:           0.8-1
 #
-TDP_THRESHOLD=0.95
+TDP_THRESHOLD=0.98
 
-# FREQ_THRESHOLD is a parameter used to control the lowest freq when the power exceed tdp.
+# FREQ_THRESHOLD is a parameter used to control the lowest freq when the power exceed tdp
+# threshold (see above).
+# 1) When the frequency of a specific CPU is less than (max_freq * FREQ_THRESHOLD), Skylark
+# will begin to limit CPU bandwidth of some low priority VMs that run on that CPU.
+# 2) When no such CPU found, Skylark will also limit CPU bandwidth of some low priority VMs
+# according to their CPU bandwidth consumption.
 #
 ## Type:            float
-## Default:         0.95
+## Default:         0.98
 ## Range:           0.9-1
 #
-FREQ_THRESHOLD=0.95
+FREQ_THRESHOLD=0.98
 
 # QUOTA_THRESHOLD is a parameter used to control the cpu bandwidth ratio of low
 # priority VMs when the cpu usage of low priority VMs is too high.
@@ -47,7 +54,10 @@ FREQ_THRESHOLD=0.95
 QUOTA_THRESHOLD=0.9
 
 # ABNORMAL_THRESHOLD is a parameter used to control the maximum number of cycles of
-# low priority VMs limited cpu bandwidth.
+# low priority VMs limited cpu bandwidth. Every time a domain gets limited, its
+# remaining cycles are refreshed to be ABNORMAL_THRESHOLD, otherwise it's remaining
+# cycles decrease by 1. When the domain's remaining cycles become 0, it's CPU bandwidth
+# is recovered to initial setting.
 #
 ## Type:            int
 ## Default:         3

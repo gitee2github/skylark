@@ -61,6 +61,9 @@ class CpuController:
                 except IOError as error:
                     LOGGER.error("Failed to limit domain %s(%d) cpu bandwidth: %s"
                                  % (domain.domain_name, domain.domain_id, str(error)))
+                    # If VM doesn't stop, raise exception.
+                    if os.access(quota_path, os.F_OK):
+                        raise
                 else:
                     LOGGER.info("Domain %s(%d) cpu bandwidth was limitted to %s"
                                 % (domain.domain_name, domain.domain_id, domain_quota_us))
@@ -69,7 +72,7 @@ class CpuController:
         vm_slices_path = LOW_PRIORITY_SLICES_PATH
 
         for domain_id in self.domain_recovery_list:
-            domain = guest_info.low_prio_vm_dict[domain_id]
+            domain = guest_info.low_prio_vm_dict.get(domain_id)
             initial_bandwidth = domain.global_quota_config
             quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
@@ -78,6 +81,9 @@ class CpuController:
             except IOError as error:
                 LOGGER.error("Failed to recovery domain %s(%d) cpu bandwidth: %s!"
                              % (domain.domain_name, domain.domain_id, str(error)))
+                # If VM doesn't stop, raise exception.
+                if os.access(quota_path, os.F_OK):
+                    raise
             else:
                 LOGGER.info("Domain %s(%d) cpu bandwidth was recoveried to %s"
                             % (domain.domain_name, domain.domain_id, initial_bandwidth))
@@ -95,18 +101,22 @@ class CpuController:
             except IOError:
                 LOGGER.error("Failed to reset domain %s(%d) cpu bandwidth to its initial bandwidth %s!"
                              % (domain.domain_name, domain.domain_id, initial_bandwidth))
+                # This is on exiting path, make no sense to raise exception.
             else:
                 LOGGER.info("Domain %s(%d) cpu bandwidth was reset to %s"
                             % (domain.domain_name, domain.domain_id, initial_bandwidth))
 
-    def check_adjust_list(self):
-        self.domain_recovery_list.clear()
-        for domain_id in self.domain_adjust_dict:
-            if self.domain_adjust_dict.get(domain_id) == 0:
+    def check_adjust_recover_list(self, guest_info):
+        for domain_id in list(self.domain_adjust_dict):
+            if domain_id not in guest_info.low_prio_vm_dict:
+                del self.domain_adjust_dict[domain_id]
+            elif self.domain_adjust_dict.get(domain_id) == 0:
+                del self.domain_adjust_dict[domain_id]
                 self.domain_recovery_list.append(domain_id)
-                continue
-            self.domain_adjust_dict[domain_id] -= 1
-        for domain_id in self.domain_recovery_list:
-            del self.domain_adjust_dict[domain_id]
         LOGGER.info("The list of adjustment is %s, the list of recovery is %s"
                     % (self.domain_adjust_dict, self.domain_recovery_list))
+
+    def refresh_adjust_recover_list(self):
+        self.domain_recovery_list.clear()
+        for domain_id in self.domain_adjust_dict:
+            self.domain_adjust_dict[domain_id] -= 1

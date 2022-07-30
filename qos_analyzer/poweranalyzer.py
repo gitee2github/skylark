@@ -56,11 +56,12 @@ class PowerAnalyzer:
             if self.power_hotspot_dict.get(package):
                 self.__usage_analysis(data_collector.host_info.host_topo,
                                       data_collector.guest_info, package, qos_controller)
-                qos_controller.limit_domain_bandwidth(data_collector.guest_info,
-                                                      self.quota_threshold, self.abnormal_threshold)
 
-        qos_controller.check_adjust_list()
+        qos_controller.check_adjust_recover_list(data_collector.guest_info)
+        qos_controller.limit_domain_bandwidth(data_collector.guest_info,
+                                              self.quota_threshold, self.abnormal_threshold)
         qos_controller.recovery_domain_bandwidth(data_collector.guest_info)
+        qos_controller.refresh_adjust_recover_list()
 
     def __power_analysis(self, host_info):
         self.power_hotspot_dict.clear()
@@ -91,8 +92,8 @@ class PowerAnalyzer:
                 for domain in guest_info.running_domain_in_cpus[cpu]:
                     if domain[3] == 1 and domain[0] != 0:
                         qos_controller.domain_adjust_dict[domain[1]] = self.abnormal_threshold
-                        LOGGER.info("Domain %s(%d) usage is %f"
-                                    % (domain[2], domain[1], domain[0]))
+                        LOGGER.debug("Domain %s(%d) usage on CPU%d is %f"
+                                     % (domain[2], domain[1], cpu, domain[0]))
                         break
         else:
             for cpu in range(host_topo.max_cpu_nums):

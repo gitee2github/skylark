@@ -158,10 +158,10 @@ class HostStatusData:
             else:
                 LOGGER.error("The update interval is zero!")
                 raise OSError
-            LOGGER.debug("The power of package %d is %.2f, interval is %.3fs"
+            LOGGER.debug("The power of package %d is %.2f, interval is %dns."
                          % (package, self.package_data_dict.get(package).energy_watt, update_interval))
-            LOGGER.debug("Last time energy was %d, update time was %d ns,"
-                         "curr energy is %d, update_time is %d ns"
+            LOGGER.debug("Last time energy was %d, update time was %dns, "
+                         "curr energy is %d, update_time is %dns."
                          % (old_status_data.package_data_dict.get(package).energy_pkg,
                             old_status_data.package_data_dict.get(package).update_time,
                             self.package_data_dict.get(package).energy_pkg,
@@ -279,7 +279,7 @@ class HostInfo:
 
     def __is_turbo_enable(self):
         try:
-            self.turbo_is_enable = util.file_read("/sys/devices/system/cpu/intel_pstate/no_turbo") == 0
+            self.turbo_is_enable = util.file_read("/sys/devices/system/cpu/intel_pstate/no_turbo") == "0"
         except FileNotFoundError:
             self.turbo_is_enable = False
 
