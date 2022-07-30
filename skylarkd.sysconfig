@@ -1,12 +1,15 @@
 # LOG_LEVEL is a parameter used to set the minimal log level. The order of log level
 # is critical > error > warning > info > debug. Logging messages which are less than
 # this parameter will not output.
+# The log locates at /var/log/skylark.log. We backup the log for every 7 days, and max
+# backup count is 4 (when about to exceed, delete oldest log), which means the log will
+# be kept for max 28 days. The backup log locates at /var/log/skylark.log.%Y-%m-%d
 #
 ## Type:            enum
-## Default:         warning
+## Default:         info
 ## Range:           critical|error|warning|info|debug
 #
-LOG_LEVEL=warning
+LOG_LEVEL=info
 
 # POWER_QOS_MANAGEMENT is a parameter used to switch the ability to manage power QoS.
 # Currently only support intel x86 platform. The power QoS Management can be optional

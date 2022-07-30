@@ -36,9 +36,10 @@ class Logger:
         self._logger = logging.getLogger()
         self._logger.addHandler(self._get_rotate_handler())
 
-        log_level = os.getenv("LOG_LEVEL", "").lower()
+        log_level = os.getenv("LOG_LEVEL", "info").lower()
         if log_level not in LOGGING_LEVEL:
-            log_level = "warning"
+            self._logger.error("Configuration for LOG_LEVEL is unknown.")
+            raise IOError
         self._logger.setLevel(LOGGING_LEVEL[log_level])
 
     @staticmethod
