@@ -28,6 +28,7 @@ DEFAULT_PRIORITY = "machine"
 HIGH_PRIORITY = "high_prio_machine"
 LOW_PRIORITY = "low_prio_machine"
 PIDS_CGRP_PATH = "/sys/fs/cgroup/pids"
+DOMAIN_STOP_MSG = "domain is not running"
 
 
 class DomainInfo:
@@ -141,42 +142,37 @@ class GuestInfo:
             self.running_domain_in_cpus.append([])
 
         self.get_all_active_domain(conn)
-
         for dom in self.domain_online:
             self.vm_online_dict[dom.ID()] = dom
-        for vm_id in self.vm_online_dict:
-            ret = -1
-            if vm_id in self.vm_dict:
-                try:
-                    ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError as e:
-                    if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN:
-                        raise
-                if ret < 0:
-                    del self.vm_dict[vm_id]
-                    continue
-            else:
-                try:
-                    vm_info = DomainInfo()
-                    ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
-                except libvirt.libvirtError as e:
-                    if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN:
-                        raise
-                if ret < 0:
-                    continue
-                self.vm_dict[vm_id] = vm_info
+        # Remove ever see but now stopped domains
+        for vm_id in list(self.vm_dict):
+            if vm_id not in self.vm_online_dict:
+                del self.vm_dict[vm_id]
 
+        for vm_id in self.vm_online_dict:
+            try:
+                if vm_id in self.vm_dict:
+                    ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
+                else:
+                    self.vm_dict[vm_id] = DomainInfo()
+                    ret = self.vm_dict.get(vm_id).set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
+            except libvirt.libvirtError as e:
+                ret = -1
+                # If domain doesn't stop, raise exception
+                if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN and \
+                   DOMAIN_STOP_MSG not in e.get_error_message():
+                    raise
+            if ret < 0:
+                del self.vm_dict[vm_id]
+                continue
+
+            if self.vm_dict.get(vm_id).priority == 1:
+                self.low_prio_vm_dict[vm_id] = self.vm_dict.get(vm_id)
             for cpu in range(host_topo.max_cpu_nums):
                 self.running_domain_in_cpus[cpu].append((self.vm_dict.get(vm_id).cpu_usage[cpu],
                                                          self.vm_dict.get(vm_id).domain_id,
                                                          self.vm_dict.get(vm_id).domain_name,
                                                          self.vm_dict.get(vm_id).priority))
-
-        for vm_id in list(self.vm_dict):
-            if vm_id not in self.vm_online_dict:
-                del self.vm_dict[vm_id]
-            elif vm_id not in self.low_prio_vm_dict and self.vm_dict.get(vm_id).priority == 1:
-                self.low_prio_vm_dict[vm_id] = self.vm_dict.get(vm_id)
 
     def get_all_active_domain(self, conn):
         try:
