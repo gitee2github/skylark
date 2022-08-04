@@ -59,7 +59,6 @@ class QosManager:
     def __init__(self, vir_conn):
         self.vir_conn = vir_conn
         self.data_collector = DataCollector()
-        self.scheduler = BackgroundScheduler(logger=LOGGER)
         self.power_analyzer = PowerAnalyzer()
         self.cpu_controller = CpuController()
         self.net_controller = NetController()
@@ -71,6 +70,7 @@ class QosManager:
             self.scheduler.remove_all_jobs()
 
     def init_scheduler(self):
+        self.scheduler = BackgroundScheduler(logger=LOGGER)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
             self.has_job = True
@@ -95,12 +95,12 @@ class QosManager:
         self.scheduler.start()
 
     def reset_data_collector(self):
-        self.scheduler.pause()
+        self.scheduler.shutdown(wait=True)
         self.data_collector.reset_base_info(self.vir_conn)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.data_collector.reset_power_info()
-            self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
-        self.scheduler.resume()
+        self.init_scheduler()
+        self.start_scheduler()
 
     def __do_power_manage(self):
         self.data_collector.update_base_info(self.vir_conn)
