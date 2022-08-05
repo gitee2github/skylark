@@ -47,10 +47,6 @@ class DomainInfo:
         self.domain_name = domain.name()
         self.domain_id = int(domain.ID())
 
-        if not domain.isActive():
-            LOGGER.error("Domain %s(%d) is not active!" % (self.domain_name, self.domain_id))
-            return -1
-
         quota_parameter = re.search("<global_quota>(.*)</global_quota>", domain.XMLDesc())
         if quota_parameter:
             self.global_quota_config = int(quota_parameter.groups()[0])
@@ -95,10 +91,6 @@ class DomainInfo:
         return 0
 
     def update_domain_info(self, domain, host_topo):
-        if not domain.isActive():
-            LOGGER.error("Domain %s(%d) is not active!" % (self.domain_name, self.domain_id))
-            return -1
-
         current_time = time.time_ns()
         domain_running_time_list = domain.getCPUStats(total=False)
 
@@ -153,16 +145,24 @@ class GuestInfo:
         for dom in self.domain_online:
             self.vm_online_dict[dom.ID()] = dom
         for vm_id in self.vm_online_dict:
+            ret = -1
             if vm_id in self.vm_dict:
-                ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
+                try:
+                    ret = self.vm_dict.get(vm_id).update_domain_info(self.vm_online_dict.get(vm_id), host_topo)
+                except libvirt.libvirtError as e:
+                    if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN:
+                        raise
                 if ret < 0:
                     del self.vm_dict[vm_id]
                     continue
             else:
-                vm_info = DomainInfo()
-                ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
+                try:
+                    vm_info = DomainInfo()
+                    ret = vm_info.set_domain_attribute(self.vm_online_dict.get(vm_id), host_topo)
+                except libvirt.libvirtError as e:
+                    if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN:
+                        raise
                 if ret < 0:
-                    LOGGER.error("Domain %s status is abnormal!" % vm_id)
                     continue
                 self.vm_dict[vm_id] = vm_info
 

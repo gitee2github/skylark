@@ -59,7 +59,6 @@ class QosManager:
     def __init__(self, vir_conn):
         self.vir_conn = vir_conn
         self.data_collector = DataCollector()
-        self.scheduler = BackgroundScheduler(logger=LOGGER)
         self.power_analyzer = PowerAnalyzer()
         self.cpu_controller = CpuController()
         self.net_controller = NetController()
@@ -71,6 +70,7 @@ class QosManager:
             self.scheduler.remove_all_jobs()
 
     def init_scheduler(self):
+        self.scheduler = BackgroundScheduler(logger=LOGGER)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.scheduler.add_job(self.__do_power_manage, trigger='interval', seconds=1, id='do_power_manage')
             self.has_job = True
@@ -78,6 +78,7 @@ class QosManager:
 
     def init_data_collector(self):
         self.data_collector.set_static_base_info()
+        self.data_collector.update_base_info(self.vir_conn)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.data_collector.set_static_power_info()
 
@@ -95,12 +96,12 @@ class QosManager:
         self.scheduler.start()
 
     def reset_data_collector(self):
-        self.scheduler.pause()
+        self.scheduler.shutdown(wait=True)
         self.data_collector.reset_base_info(self.vir_conn)
         if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
             self.data_collector.reset_power_info()
-            self.scheduler.reschedule_job('do_power_manage', trigger='interval', seconds=1)
-        self.scheduler.resume()
+        self.init_scheduler()
+        self.start_scheduler()
 
     def __do_power_manage(self):
         self.data_collector.update_base_info(self.vir_conn)
@@ -226,29 +227,28 @@ def func_daemon():
         LOGGER.error("System internal error, failed to open libvirtd connection!")
         sys.exit(1)
 
-    LOGGER.info("QoS management started.")
+    event_lifecycle_id = register_callback_event(LIBVIRT_CONN,
+                                                 libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE,
+                                                 event_lifecycle_callback, None)
+    event_device_added_id = register_callback_event(LIBVIRT_CONN,
+                                                    libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
+                                                    event_device_added_callback, None)
+    event_device_removed_id = register_callback_event(LIBVIRT_CONN,
+                                                      libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
+                                                      event_device_removed_callback, None)
+    if event_lifecycle_id < 0 or event_device_added_id < 0 or event_device_removed_id < 0:
+        LOGGER.error("Failed to register libvirt event %d, %d, %d"
+                     % (event_lifecycle_id, event_device_added_id, event_device_removed_id))
+        sys.exit(1)
+    LOGGER.info("Libvirtd connected and libvirt event registered.")
+
     QOS_MANAGER_ENTRY = QosManager(LIBVIRT_CONN)
     QOS_MANAGER_ENTRY.init_scheduler()
     QOS_MANAGER_ENTRY.init_data_collector()
     QOS_MANAGER_ENTRY.init_qos_analyzer()
     QOS_MANAGER_ENTRY.init_qos_controller()
     QOS_MANAGER_ENTRY.start_scheduler()
-
-    event_lifecycle_id = register_callback_event(LIBVIRT_CONN,
-                                                 libvirt.VIR_DOMAIN_EVENT_ID_LIFECYCLE,
-                                                 event_lifecycle_callback, QOS_MANAGER_ENTRY)
-    event_device_added_id = register_callback_event(LIBVIRT_CONN,
-                                                    libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_ADDED,
-                                                    event_device_added_callback, QOS_MANAGER_ENTRY)
-    event_device_removed_id = register_callback_event(LIBVIRT_CONN,
-                                                      libvirt.VIR_DOMAIN_EVENT_ID_DEVICE_REMOVED,
-                                                      event_device_removed_callback, QOS_MANAGER_ENTRY)
-    if event_lifecycle_id < 0 or event_device_added_id < 0 or event_device_removed_id < 0:
-        LOGGER.error("Failed to register libvirt event %d, %d, %d"
-                     % (event_lifecycle_id, event_device_added_id, event_device_removed_id))
-        sys.exit(1)
-
-    LOGGER.info("Libvirtd connected and libvirt event registered.")
+    LOGGER.info("QoS management started.")
 
     while LIBVIRT_CONN.isAlive():
         if not QOS_MANAGER_ENTRY.scheduler.get_jobs() and QOS_MANAGER_ENTRY.has_job:

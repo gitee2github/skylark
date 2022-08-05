@@ -64,7 +64,7 @@ class CacheMBWController:
 
     def __get_low_init_alloc(self, resctrl_info: ResctrlInfo):
         low_vms_mbw_init = float(os.getenv("MIN_MBW_LOW_VMS"))
-        if not LOW_MBW_INIT_FLOOR <= low_vms_mbw_init <= LOW_MBW_INIT_FLOOR:
+        if not LOW_MBW_INIT_FLOOR <= low_vms_mbw_init <= LOW_MBW_INIT_CEIL:
             LOGGER.error("Invalid environment variables: MIN_MBW_LOW_VMS")
             raise Exception
         low_vms_cache_init = int(os.getenv("MIN_LLC_WAYS_LOW_VMS"))
@@ -124,6 +124,12 @@ class CacheMBWController:
             return
         LOGGER.info("Add %s pids to %s" %
                     (vm_cgrp_name, os.path.join(LOW_VMS_RESGROUP_PATH, "tasks")))
-        with open(tasks_path) as tasks:
-            for task in tasks:
-                util.file_write(os.path.join(LOW_VMS_RESGROUP_PATH, "tasks"), task)
+        try:
+            with open(tasks_path) as tasks:
+                for task in tasks:
+                    util.file_write(os.path.join(LOW_VMS_RESGROUP_PATH, "tasks"), task)
+        except IOError as e:
+            LOGGER.error("Failed to add VM(%s) pids to resctrl: %s" % (vm_cgrp_name, str(e)))
+            # If the VM doesn't stop, raise exception.
+            if os.access(tasks_path, os.F_OK):
+                raise
