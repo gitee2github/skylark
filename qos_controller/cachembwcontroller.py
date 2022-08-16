@@ -25,7 +25,6 @@ from data_collector.guestinfo import GuestInfo
 from data_collector.hostinfo import ResctrlInfo
 
 LOW_VMS_RESGROUP_PATH = "/sys/fs/resctrl/low_prio_machine"
-LOW_VMS_PID_CGRP_PATH = "/sys/fs/cgroup/pids/low_prio_machine.slice"
 LOW_MBW_INIT_FLOOR = 0.1
 LOW_MBW_INIT_CEIL = 0.2
 LOW_CACHE_INIT_FLOOR = 1
@@ -56,11 +55,6 @@ class CacheMBWController:
         ResgroupFileOperations.create_group_dir(LOW_VMS_RESGROUP_PATH)
         self.__get_low_init_alloc(resctrl_info)
         self.set_low_init_alloc(resctrl_info)
-        with os.scandir(LOW_VMS_PID_CGRP_PATH) as it:
-            for entry in it:
-                if entry.is_file():
-                    continue
-                self.__add_vm_pids(entry.name)
 
     def __get_low_init_alloc(self, resctrl_info: ResctrlInfo):
         low_vms_mbw_init = float(os.getenv("MIN_MBW_LOW_VMS"))
@@ -111,25 +105,21 @@ class CacheMBWController:
         util.file_write(os.path.join(
             LOW_VMS_RESGROUP_PATH, "schemata"), schemata_mbw_alloc)
 
-    def domain_updated(self, domain, guest_info: GuestInfo):
-        if domain.ID() in guest_info.low_prio_vm_dict:
-            self.__add_vm_pids(guest_info.vm_dict[domain.ID()].cgroup_name)
-
     @staticmethod
-    def __add_vm_pids(vm_cgrp_name):
-        tasks_path = os.path.join(LOW_VMS_PID_CGRP_PATH, vm_cgrp_name, "tasks")
+    def add_vm_pids(tasks_path):
         if not os.access(tasks_path, os.R_OK):
             LOGGER.warning(
                 "The path %s is not readable, please check." % tasks_path)
             return
-        LOGGER.info("Add %s pids to %s" %
-                    (vm_cgrp_name, os.path.join(LOW_VMS_RESGROUP_PATH, "tasks")))
+
+        resctrl_tsk_path = os.path.join(LOW_VMS_RESGROUP_PATH, "tasks")
+        LOGGER.debug("Add %s pids to %s" % (tasks_path, resctrl_tsk_path))
         try:
             with open(tasks_path) as tasks:
                 for task in tasks:
-                    util.file_write(os.path.join(LOW_VMS_RESGROUP_PATH, "tasks"), task)
+                    util.file_write(resctrl_tsk_path, task)
         except IOError as e:
-            LOGGER.error("Failed to add VM(%s) pids to resctrl: %s" % (vm_cgrp_name, str(e)))
+            LOGGER.error("Failed to add %s pids to resctrl: %s" % (tasks_path, str(e)))
             # If the VM doesn't stop, raise exception.
             if os.access(tasks_path, os.F_OK):
                 raise

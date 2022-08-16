@@ -125,13 +125,6 @@ class GuestInfo:
         self.domain_online = []
         self.running_domain_in_cpus = []
 
-    def clear_guest_info(self):
-        self.vm_dict.clear()
-        self.low_prio_vm_dict.clear()
-        self.vm_online_dict.clear()
-        self.domain_online.clear()
-        self.running_domain_in_cpus.clear()
-
     def update_guest_info(self, conn, host_topo):
         self.running_domain_in_cpus.clear()
         self.vm_online_dict.clear()
