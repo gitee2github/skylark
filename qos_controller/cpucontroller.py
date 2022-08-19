@@ -23,6 +23,10 @@ import util
 
 LOW_PRIORITY_SLICES_PATH = "/sys/fs/cgroup/cpu/low_prio_machine.slice"
 LOW_PRIORITY_QOS_LEVEL = -1
+OVERLOAG_DETECT_PERIOD_PATH = "/proc/sys/kernel/qos_overload_detect_period_ms"
+OVERLOAG_DETECT_PERIOD_MS = 100
+OFFLINE_WAIT_INTERVAL_PATH = "/proc/sys/kernel/qos_offline_wait_interval_ms"
+OFFLINE_WAIT_INTERVAL_MS = 100
 MIN_QUOTA_US = 0
 
 
@@ -36,8 +40,10 @@ class CpuController:
         qos_level_path = os.path.join(LOW_PRIORITY_SLICES_PATH, "cpu.qos_level")
         try:
             util.file_write(qos_level_path, str(LOW_PRIORITY_QOS_LEVEL))
+            util.file_write(OVERLOAG_DETECT_PERIOD_PATH, str(OVERLOAG_DETECT_PERIOD_MS))
+            util.file_write(OFFLINE_WAIT_INTERVAL_PATH, str(OFFLINE_WAIT_INTERVAL_MS))
         except IOError as error:
-            LOGGER.error("Failed to set low priority cpu qos level: %s" % str(error))
+            LOGGER.error("Failed to configure CPU QoS for low priority VMs: %s" % str(error))
             raise
 
     def limit_domain_bandwidth(self, guest_info, quota_threshold, abnormal_threshold):
