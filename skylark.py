@@ -112,15 +112,16 @@ def create_pid_file():
     os.fchmod(fd, stat.S_IRUSR | stat.S_IWUSR)
     os.close(fd)
     try:
-        PID_FILE = open(PID_FILE_NAME, 'w')
+        PID_FILE = open(PID_FILE_NAME, 'a')
     except IOError:
         LOGGER.error("Failed to open pid file")
-        exit(1)
+        sys.exit(1)
 
     try:
         fcntl.flock(PID_FILE.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except IOError:
         LOGGER.error("A running service instance already creates the pid file! This service will exit!")
+        PID_FILE.close()
         os._exit(0)
 
     process_pid = os.getpid()
@@ -153,9 +154,6 @@ def func_daemon():
     @atexit.register
     def daemon_exit_func():
         LIBVIRT_CONN.close()
-        remove_pid_file()
-
-    create_pid_file()
 
     LOGGER.info("Try to open libvirtd connection")
     try:
@@ -186,7 +184,10 @@ def create_daemon():
         LOGGER.error('Fork daemon process failed: %d (%s)' % (error.errno, error.strerror))
         os._exit(1)
     else:
-        if pid:
+        if pid == 0:
+            atexit.register(remove_pid_file)
+            create_pid_file()
+        else:
             os._exit(0)
         os.chdir('/')
         os.umask(0)
