@@ -17,6 +17,7 @@ Description: This file is used for providing a power analyzer
 # @code
 
 import os
+import sys
 
 from logger import LOGGER
 from qos_controller import cpucontroller
@@ -34,13 +35,16 @@ class PowerAnalyzer:
         self.qos_controller = cpucontroller.CpuController()
 
     def set_hotspot_threshold(self, data_collector):
-        self.tdp_threshold = float(os.getenv("TDP_THRESHOLD"))
-        self.freq_threshold = float(os.getenv("FREQ_THRESHOLD"))
-        self.abnormal_threshold = int(os.getenv("ABNORMAL_THRESHOLD"))
-        self.quota_threshold = float(os.getenv("QUOTA_THRESHOLD"))
+        try:
+            self.tdp_threshold = float(os.getenv("TDP_THRESHOLD", "0.98"))
+            self.freq_threshold = float(os.getenv("FREQ_THRESHOLD", "0.98"))
+            self.abnormal_threshold = int(os.getenv("ABNORMAL_THRESHOLD", "3"))
+            self.quota_threshold = float(os.getenv("QUOTA_THRESHOLD", "0.9"))
+        except ValueError:
+            LOGGER.error("Threshold parameter type is incorrect, please check.")
+            sys.exit(1)
         self.__check_threshold_validity()
-
-        self.freq_threshold = float(os.getenv("FREQ_THRESHOLD")) * data_collector.host_info.cpu_turbofreq_mhz
+        self.freq_threshold = self.freq_threshold * data_collector.host_info.cpu_turbofreq_mhz
         LOGGER.info("Frequency threshold is %.2f, abnormal times threshold is %d, bandwidth threshold is %.2f"
                     % (self.freq_threshold, self.abnormal_threshold, self.quota_threshold))
 
