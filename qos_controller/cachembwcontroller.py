@@ -17,6 +17,7 @@ Description: This file is used for control CACHE/MBW of low priority vms
 # @code
 
 import os
+import sys
 import errno
 
 import util
@@ -57,11 +58,15 @@ class CacheMBWController:
         self.set_low_init_alloc(resctrl_info)
 
     def __get_low_init_alloc(self, resctrl_info: ResctrlInfo):
-        low_vms_mbw_init = float(os.getenv("MIN_MBW_LOW_VMS"))
+        try:
+            low_vms_mbw_init = float(os.getenv("MIN_MBW_LOW_VMS", "0.1"))
+            low_vms_cache_init = int(os.getenv("MIN_LLC_WAYS_LOW_VMS", "2"))
+        except ValueError:
+            LOGGER.error("MIN_MBW_LOW_VMS or MIN_LLC_WAYS_LOW_VMS parameter type is invalid.")
+            sys.exit(1)
         if not LOW_MBW_INIT_FLOOR <= low_vms_mbw_init <= LOW_MBW_INIT_CEIL:
             LOGGER.error("Invalid environment variables: MIN_MBW_LOW_VMS")
             raise Exception
-        low_vms_cache_init = int(os.getenv("MIN_LLC_WAYS_LOW_VMS"))
         if not LOW_CACHE_INIT_FLOOR <= low_vms_cache_init <= LOW_CACHE_INIT_CEIL:
             LOGGER.error("Invalid environment variables: MIN_LLC_WAYS_LOW_VMS")
             raise Exception

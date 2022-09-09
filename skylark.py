@@ -84,8 +84,9 @@ class QosManager:
 
     def init_qos_controller(self):
         self.cpu_controller.set_low_priority_cgroup()
+        if os.getenv("POWER_QOS_MANAGEMENT", "false").lower() == "true":
+            atexit.register(self.cpu_controller.reset_domain_bandwidth, self.data_collector.guest_info)
         self.cachembw_controller.init_cachembw_controller(self.data_collector.host_info.resctrl_info)
-        atexit.register(self.cpu_controller.reset_domain_bandwidth, self.data_collector.guest_info)
         self.net_controller.init_net_controller()
 
     def start_scheduler(self):

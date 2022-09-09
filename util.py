@@ -31,13 +31,14 @@ def file_read(file_path):
         raise
 
 
-def file_write(file_path, value):
+def file_write(file_path, value, log=True):
     try:
         with open(file_path, 'wb') as file:
             file.truncate()
             file.write(str.encode(value))
     except FileNotFoundError as error:
-        LOGGER.error(str(error))
+        if log:
+            LOGGER.error(str(error))
         raise
 
 

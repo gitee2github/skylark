@@ -63,12 +63,12 @@ class CpuController:
                 quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
                 try:
-                    util.file_write(quota_path, str(domain_quota_us))
+                    util.file_write(quota_path, str(domain_quota_us), log=False)
                 except IOError as error:
-                    LOGGER.error("Failed to limit domain %s(%d) cpu bandwidth: %s"
-                                 % (domain.domain_name, domain.domain_id, str(error)))
                     # If VM doesn't stop, raise exception.
                     if os.access(quota_path, os.F_OK):
+                        LOGGER.error("Failed to limit domain %s(%d) cpu bandwidth: %s"
+                                     % (domain.domain_name, domain.domain_id, str(error)))
                         raise
                 else:
                     LOGGER.info("Domain %s(%d) cpu bandwidth was limitted to %s"
@@ -83,12 +83,12 @@ class CpuController:
             quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
 
             try:
-                util.file_write(quota_path, str(initial_bandwidth))
+                util.file_write(quota_path, str(initial_bandwidth), log=False)
             except IOError as error:
-                LOGGER.error("Failed to recovery domain %s(%d) cpu bandwidth: %s!"
-                             % (domain.domain_name, domain.domain_id, str(error)))
                 # If VM doesn't stop, raise exception.
                 if os.access(quota_path, os.F_OK):
+                    LOGGER.error("Failed to recovery domain %s(%d) cpu bandwidth: %s!"
+                                 % (domain.domain_name, domain.domain_id, str(error)))
                     raise
             else:
                 LOGGER.info("Domain %s(%d) cpu bandwidth was recoveried to %s"
@@ -101,13 +101,12 @@ class CpuController:
             domain = guest_info.low_prio_vm_dict.get(domain_id)
             initial_bandwidth = domain.global_quota_config
             quota_path = os.path.join(vm_slices_path, domain.cgroup_name, "cpu.cfs_quota_us")
-
             try:
-                util.file_write(quota_path, str(initial_bandwidth))
+                util.file_write(quota_path, str(initial_bandwidth), log=False)
             except IOError:
-                LOGGER.error("Failed to reset domain %s(%d) cpu bandwidth to its initial bandwidth %s!"
-                             % (domain.domain_name, domain.domain_id, initial_bandwidth))
-                # This is on exiting path, make no sense to raise exception.
+                if os.access(quota_path, os.F_OK):
+                    LOGGER.error("Failed to reset domain %s(%d) cpu bandwidth to its initial bandwidth %s!"
+                                 % (domain.domain_name, domain.domain_id, initial_bandwidth))
             else:
                 LOGGER.info("Domain %s(%d) cpu bandwidth was reset to %s"
                             % (domain.domain_name, domain.domain_id, initial_bandwidth))
