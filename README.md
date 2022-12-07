@@ -1,7 +1,7 @@
 # skylark
 
 #### 介绍
-Skylark is a next-generation QoS-aware scheduler which provides coordinated resource scheduling for co-located applications with different QoS requirements. Typical applications are VM and Container. The architecture is highly scalable, so it's easy to be extended to support new types of applications and resources in the future.
+Skylark 是新一代 QoS 感知的资源调度器，可为不同 QoS 要求的混部业务提供合适的资源调度。典型的业务包含虚拟机和容器。本组件具有丰富的可扩展性，因此易于支持未来可能出现的新型业务和资源。
 
 #### 软件架构
 
