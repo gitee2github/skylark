@@ -7,7 +7,7 @@ skylarkd: *.py */*.py
 	mv ../skylarkd .
 
 libskylarkmsr.so: data_collector/get_msr.c
-	gcc --share -fPIC -g -o libskylarkmsr.so data_collector/get_msr.c
+	gcc --share -fPIC -s -o libskylarkmsr.so data_collector/get_msr.c
 
 install: skylarkd libskylarkmsr.so skylarkd.service skylarkd.sysconfig low_prio_machine.slice high_prio_machine.slice
 	install -T -D skylarkd $(DESTDIR)/usr/sbin/skylarkd
